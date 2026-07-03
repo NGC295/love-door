@@ -144,6 +144,7 @@
             border-radius: 12px;
             overflow: hidden;
             margin-bottom: 15px;
+            position: relative;
         }
         .photo-item img {
             width: 100%;
@@ -160,6 +161,22 @@
             font-size: 12px;
             color: #999;
         }
+        .photo-item .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        .photo-item .delete-btn:hover { background: #e03131; }
 
         /* 成绩统计 */
         .score-form-row {
@@ -224,6 +241,34 @@
             padding: 30px 0;
         }
 
+        /* 成绩列表 */
+        .score-list-container {
+            margin-top: 20px;
+            border-top: 2px dashed #f8a5c2;
+            padding-top: 15px;
+        }
+        .score-list-container h4 { color: #e84393; margin-bottom: 10px; }
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: #fdf2f8;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .score-item .del-score {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 2px 12px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .score-item .del-score:hover { background: #e03131; }
+
         /* 小屏适配 */
         @media (max-width: 600px) {
             .header h1 { font-size: 18px; }
@@ -256,7 +301,7 @@
         <!-- 留言人选择 -->
         <div class="role-selector">
             <label><input type="radio" name="msgAuthor" value="林" checked> 💕 林</label>
-            <label><input type="radio" name="msgAuthor" value="她"> 💖 她</label>
+            <label><input type="radio" name="msgAuthor" value="付"> 💖 付</label>
         </div>
         <div class="form-group">
             <textarea id="msgContent" placeholder="想对TA说什么..." rows="3"></textarea>
@@ -317,12 +362,18 @@
             <canvas id="scoreChart"></canvas>
         </div>
         <div id="scoreEmpty" class="empty-tip">📝 暂无成绩数据，录入第一条吧！</div>
+
+        <!-- 成绩列表（带删除） -->
+        <div class="score-list-container">
+            <h4>📋 已录入成绩</h4>
+            <div id="scoreList" style="max-height:200px; overflow-y:auto;"></div>
+        </div>
     </div>
 </div>
 
 <script>
 // ============================================================
-// 1. Supabase 初始化（你的配置）
+// 1. Supabase 初始化
 // ============================================================
 const SUPABASE_URL = 'https://ucxtoekdjqlkkfrkpbol.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjeHRvZWtkanFsa2tmcmtwYm9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTEwNDcsImV4cCI6MjA5ODY2NzA0N30.bGAUFN92YZLfmDUbd9t_DsmxymA8KZgr1Z67ezWLBJY';
@@ -390,17 +441,35 @@ async function loadMessages() {
         }
 
         list.innerHTML = data.map(msg => `
-            <div class="message-item">
-                <div>
-                    <span class="author">${msg.author}</span>
-                    <span class="time">${new Date(msg.created_at).toLocaleString('zh-CN')}</span>
+            <div class="message-item" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="flex:1;">
+                    <div>
+                        <span class="author">${msg.author}</span>
+                        <span class="time">${new Date(msg.created_at).toLocaleString('zh-CN')}</span>
+                    </div>
+                    <div class="content">${msg.content}</div>
                 </div>
-                <div class="content">${msg.content}</div>
+                <button onclick="deleteMessage('${msg.id}')" style="background:#ff6b6b; color:white; border:none; border-radius:8px; padding:4px 12px; cursor:pointer; font-size:12px; flex-shrink:0;">删除</button>
             </div>
         `).join('');
     } catch (e) {
         console.error(e);
         list.innerHTML = '<div class="empty-tip">⚠️ 加载失败，请刷新页面重试</div>';
+    }
+}
+
+async function deleteMessage(id) {
+    if (!confirm('确定要删除这条留言吗？')) return;
+    try {
+        const { error } = await supabaseClient
+            .from('messages')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        loadMessages();
+    } catch (e) {
+        alert('删除失败，请重试');
+        console.error(e);
     }
 }
 
@@ -419,32 +488,27 @@ async function uploadPhoto() {
     const file = fileInput.files[0];
     if (!file) { alert('请选择一张照片 📷'); return; }
 
-    // 限制文件大小（10MB）
     if (file.size > 10 * 1024 * 1024) {
         alert('图片不能超过 10MB，请压缩后重试');
         return;
     }
 
-    // 生成唯一文件名
     const ext = file.name.split('.').pop();
     const fileName = `${Date.now()}.${ext}`;
 
     try {
-        // 1. 上传到 Storage
         const { error: uploadError } = await supabaseClient.storage
             .from('photos')
             .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
-        // 2. 获取公开 URL
         const { data: urlData } = supabaseClient.storage
             .from('photos')
             .getPublicUrl(fileName);
 
         const imageUrl = urlData.publicUrl;
 
-        // 3. 存入数据库
         const { error: dbError } = await supabaseClient
             .from('photos')
             .insert([{ image_url: imageUrl, description: desc || '无描述' }]);
@@ -480,6 +544,7 @@ async function loadPhotos() {
 
         list.innerHTML = data.map(photo => `
             <div class="photo-item">
+                <button class="delete-btn" onclick="deletePhoto('${photo.id}')">×</button>
                 <img src="${photo.image_url}" alt="${photo.description}" loading="lazy">
                 <div class="photo-desc">
                     ${photo.description}
@@ -490,6 +555,21 @@ async function loadPhotos() {
     } catch (e) {
         console.error(e);
         list.innerHTML = '<div class="empty-tip">⚠️ 加载失败，请刷新页面重试</div>';
+    }
+}
+
+async function deletePhoto(id) {
+    if (!confirm('确定要删除这张照片吗？（仅删除记录，图片文件仍保留在存储中）')) return;
+    try {
+        const { error } = await supabaseClient
+            .from('photos')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        loadPhotos();
+    } catch (e) {
+        alert('删除失败，请重试');
+        console.error(e);
     }
 }
 
@@ -543,6 +623,7 @@ async function loadScores() {
         if (!data || data.length === 0) {
             emptyEl.style.display = 'block';
             if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+            document.getElementById('scoreList').innerHTML = '<div style="color:#999; text-align:center; padding:10px;">暂无成绩</div>';
             return;
         }
         emptyEl.style.display = 'none';
@@ -556,11 +637,12 @@ async function loadScores() {
                 const found = data.find(d => d.subject === sub && d.exam_date === date);
                 return found ? found.score : null;
             });
+            const colors = ['#e84393', '#fd79a8', '#6c5ce7', '#00b894', '#fdcb6e'];
             return {
                 label: sub,
                 data: scores,
-                borderColor: ['#e84393', '#fd79a8', '#6c5ce7', '#00b894', '#fdcb6e'][subjects.indexOf(sub) % 5],
-                backgroundColor: ['#e84393', '#fd79a8', '#6c5ce7', '#00b894', '#fdcb6e'][subjects.indexOf(sub) % 5] + '33',
+                borderColor: colors[subjects.indexOf(sub) % colors.length],
+                backgroundColor: colors[subjects.indexOf(sub) % colors.length] + '33',
                 borderWidth: 3,
                 pointRadius: 5,
                 tension: 0.2,
@@ -603,7 +685,31 @@ async function loadScores() {
                 }
             }
         });
+
+        // 渲染成绩列表（带删除）
+        const scoreListEl = document.getElementById('scoreList');
+        scoreListEl.innerHTML = data.map(s => `
+            <div class="score-item">
+                <span><strong>${s.subject}</strong> ${s.score}分 (${s.exam_date})</span>
+                <button class="del-score" onclick="deleteScore('${s.id}')">删除</button>
+            </div>
+        `).join('');
     } catch (e) {
+        console.error(e);
+    }
+}
+
+async function deleteScore(id) {
+    if (!confirm('确定要删除这条成绩吗？')) return;
+    try {
+        const { error } = await supabaseClient
+            .from('scores')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        loadScores();
+    } catch (e) {
+        alert('删除失败，请重试');
         console.error(e);
     }
 }
@@ -621,10 +727,8 @@ function logout() {
 // 7. 页面加载时自动加载数据
 // ============================================================
 window.onload = function() {
-    // 设置今天的日期为默认值
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('scoreDate').value = today;
-
     loadMessages();
     loadPhotos();
     loadScores();
