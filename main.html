@@ -1,1 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💖 我们的秘密基地</title>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background: #fdf2f8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        /* 顶部导航 */
+        .header {
+            background: linear-gradient(135deg, #e84393, #fd79a8);
+            padding: 20px 30px;
+            border-radius: 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 30px rgba(232,67,147,0.3);
+        }
+        .header h1 { font-size: 22px; }
+        .header .logout {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .header .logout:hover { background: rgba(255,255,255,0.3); }
 
+        /* Tab 切换 */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tabs button {
+            flex: 1;
+            min-width: 100px;
+            padding: 12px;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #fce4ec;
+            color: #880e4f;
+            transition: 0.3s;
+        }
+        .tabs button.active {
+            background: #e84393;
+            color: white;
+            box-shadow: 0 4px 15px rgba(232,67,147,0.4);
+        }
+        .tabs button:hover { transform: translateY(-2px); }
+
+        /* 内容卡片 */
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        .tab-content.active { display: block; }
+
+        /* 表单 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #f8a5c2;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            border-color: #e84393;
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+
+        .btn-primary {
+            background: #e84393;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .btn-primary:hover { background: #d6336c; transform: scale(1.03); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* 留言列表 */
+        .message-list, .photo-list {
+            margin-top: 20px;
+            border-top: 2px dashed #f8a5c2;
+            padding-top: 20px;
+        }
+        .message-item {
+            background: #fdf2f8;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #e84393;
+        }
+        .message-item .author { font-weight: bold; color: #e84393; }
+        .message-item .time { font-size: 12px; color: #999; margin-left: 10px; }
+        .message-item .content { margin-top: 5px; color: #333; }
+
+        /* 图片列表 */
+        .photo-item {
+            border: 1px solid #fce4ec;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        .photo-item img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            display: block;
+        }
+        .photo-item .photo-desc {
+            padding: 12px 16px;
+            color: #555;
+            background: #fdf2f8;
+        }
+        .photo-item .photo-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* 成绩统计 */
+        .score-form-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .score-form-row .form-group {
+            flex: 1;
+            min-width: 120px;
+        }
+        .chart-container {
+            margin-top: 25px;
+            position: relative;
+            height: 300px;
+        }
+
+        /* 加载状态 */
+        .loading { color: #999; text-align: center; padding: 20px; }
+
+        /* 角色选择（留言人） */
+        .role-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .role-selector label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        .role-selector input[type="radio"] {
+            accent-color: #e84393;
+            width: 18px;
+            height: 18px;
+        }
+
+        .success-msg {
+            color: #2e7d32;
+            background: #e8f5e9;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+        .success-msg.show { display: block; }
+        .error-msg {
+            color: #c62828;
+            background: #ffebee;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+        .error-msg.show { display: block; }
+
+        .empty-tip {
+            color: #999;
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        /* 小屏适配 */
+        @media (max-width: 600px) {
+            .header h1 { font-size: 18px; }
+            .tabs button { font-size: 13px; min-width: 70px; padding: 10px; }
+            .tab-content { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 顶部栏 -->
+    <div class="header">
+        <h1>💖 秘密基地</h1>
+        <button class="logout" onclick="logout()">🚪 退出</button>
+    </div>
+
+    <!-- Tab 切换按钮 -->
+    <div class="tabs">
+        <button class="active" data-tab="tab-message">💬 留言板</button>
+        <button data-tab="tab-photo">📷 图片记录</button>
+        <button data-tab="tab-score">📊 成绩统计</button>
+    </div>
+
+    <!-- ============================== -->
+    <!-- Tab 1：留言板 -->
+    <!-- ============================== -->
+    <div id="tab-message" class="tab-content active">
+        <h3 style="color:#e84393; margin-bottom:15px;">💬 写留言</h3>
+        <!-- 留言人选择 -->
+        <div class="role-selector">
+            <label><input type="radio" name="msgAuthor" value="林" checked> 💕 林</label>
+            <label><input type="radio" name="msgAuthor" value="她"> 💖 她</label>
+        </div>
+        <div class="form-group">
+            <textarea id="msgContent" placeholder="想对TA说什么..." rows="3"></textarea>
+        </div>
+        <button class="btn-primary" onclick="sendMessage()">📤 发送留言</button>
+        <div id="msgSuccess" class="success-msg">✅ 留言发送成功！</div>
+        <div id="msgError" class="error-msg">❌ 发送失败，请重试</div>
+
+        <div class="message-list" id="messageList">
+            <div class="loading">加载留言中...</div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- Tab 2：图片记录 -->
+    <!-- ============================== -->
+    <div id="tab-photo" class="tab-content">
+        <h3 style="color:#e84393; margin-bottom:15px;">📷 上传照片</h3>
+        <div class="form-group">
+            <input type="file" id="photoFile" accept="image/*">
+        </div>
+        <div class="form-group">
+            <input type="text" id="photoDesc" placeholder="写点描述吧..." style="width:100%;">
+        </div>
+        <button class="btn-primary" onclick="uploadPhoto()">📤 上传照片</button>
+        <div id="photoSuccess" class="success-msg">✅ 照片上传成功！</div>
+        <div id="photoError" class="error-msg">❌ 上传失败，请重试</div>
+
+        <div class="photo-list" id="photoList">
+            <div class="loading">加载照片中...</div>
+        </div>
+    </div>
+
+    <!-- ============================== -->
+    <!-- Tab 3：成绩统计 -->
+    <!-- ============================== -->
+    <div id="tab-score" class="tab-content">
+        <h3 style="color:#e84393; margin-bottom:15px;">📊 录入成绩</h3>
+        <div class="score-form-row">
+            <div class="form-group">
+                <label>科目</label>
+                <input type="text" id="scoreSubject" placeholder="如：数学" value="数学">
+            </div>
+            <div class="form-group">
+                <label>分数</label>
+                <input type="number" id="scoreValue" placeholder="如：95" min="0" max="100">
+            </div>
+            <div class="form-group">
+                <label>考试日期</label>
+                <input type="date" id="scoreDate">
+            </div>
+        </div>
+        <button class="btn-primary" onclick="addScore()">📊 录入成绩</button>
+        <div id="scoreSuccess" class="success-msg">✅ 成绩录入成功！</div>
+        <div id="scoreError" class="error-msg">❌ 录入失败，请重试</div>
+
+        <div class="chart-container">
+            <canvas id="scoreChart"></canvas>
+        </div>
+        <div id="scoreEmpty" class="empty-tip">📝 暂无成绩数据，录入第一条吧！</div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 1. Supabase 初始化（你的配置）
+// ============================================================
+const SUPABASE_URL = 'https://ucxtoekdjqlkkfrkpbol.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjeHRvZWtkanFsa2tmcmtwYm9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTEwNDcsImV4cCI6MjA5ODY2NzA0N30.bGAUFN92YZLfmDUbd9t_DsmxymA8KZgr1Z67ezWLBJY';
+
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// 2. Tab 切换
+// ============================================================
+document.querySelectorAll('.tabs button').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById(this.dataset.tab).classList.add('active');
+    });
+});
+
+// ============================================================
+// 3. 留言板功能
+// ============================================================
+async function sendMessage() {
+    const content = document.getElementById('msgContent').value.trim();
+    const author = document.querySelector('input[name="msgAuthor"]:checked').value;
+    const successEl = document.getElementById('msgSuccess');
+    const errorEl = document.getElementById('msgError');
+
+    if (!content) { alert('写点内容再发送吧 💕'); return; }
+
+    successEl.classList.remove('show');
+    errorEl.classList.remove('show');
+
+    try {
+        const { error } = await supabaseClient
+            .from('messages')
+            .insert([{ content, author }]);
+
+        if (error) throw error;
+
+        successEl.classList.add('show');
+        document.getElementById('msgContent').value = '';
+        loadMessages();
+    } catch (e) {
+        console.error(e);
+        errorEl.classList.add('show');
+    }
+}
+
+async function loadMessages() {
+    const list = document.getElementById('messageList');
+    list.innerHTML = '<div class="loading">加载中...</div>';
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('messages')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div class="empty-tip">💬 还没有留言，快来写第一条吧！</div>';
+            return;
+        }
+
+        list.innerHTML = data.map(msg => `
+            <div class="message-item">
+                <div>
+                    <span class="author">${msg.author}</span>
+                    <span class="time">${new Date(msg.created_at).toLocaleString('zh-CN')}</span>
+                </div>
+                <div class="content">${msg.content}</div>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error(e);
+        list.innerHTML = '<div class="empty-tip">⚠️ 加载失败，请刷新页面重试</div>';
+    }
+}
+
+// ============================================================
+// 4. 图片上传功能
+// ============================================================
+async function uploadPhoto() {
+    const fileInput = document.getElementById('photoFile');
+    const desc = document.getElementById('photoDesc').value.trim();
+    const successEl = document.getElementById('photoSuccess');
+    const errorEl = document.getElementById('photoError');
+
+    successEl.classList.remove('show');
+    errorEl.classList.remove('show');
+
+    const file = fileInput.files[0];
+    if (!file) { alert('请选择一张照片 📷'); return; }
+
+    // 限制文件大小（10MB）
+    if (file.size > 10 * 1024 * 1024) {
+        alert('图片不能超过 10MB，请压缩后重试');
+        return;
+    }
+
+    // 生成唯一文件名
+    const ext = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${ext}`;
+
+    try {
+        // 1. 上传到 Storage
+        const { error: uploadError } = await supabaseClient.storage
+            .from('photos')
+            .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        // 2. 获取公开 URL
+        const { data: urlData } = supabaseClient.storage
+            .from('photos')
+            .getPublicUrl(fileName);
+
+        const imageUrl = urlData.publicUrl;
+
+        // 3. 存入数据库
+        const { error: dbError } = await supabaseClient
+            .from('photos')
+            .insert([{ image_url: imageUrl, description: desc || '无描述' }]);
+
+        if (dbError) throw dbError;
+
+        successEl.classList.add('show');
+        fileInput.value = '';
+        document.getElementById('photoDesc').value = '';
+        loadPhotos();
+    } catch (e) {
+        console.error(e);
+        errorEl.classList.add('show');
+    }
+}
+
+async function loadPhotos() {
+    const list = document.getElementById('photoList');
+    list.innerHTML = '<div class="loading">加载中...</div>';
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('photos')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div class="empty-tip">📷 还没有照片，上传一张吧！</div>';
+            return;
+        }
+
+        list.innerHTML = data.map(photo => `
+            <div class="photo-item">
+                <img src="${photo.image_url}" alt="${photo.description}" loading="lazy">
+                <div class="photo-desc">
+                    ${photo.description}
+                    <div class="photo-time">${new Date(photo.created_at).toLocaleString('zh-CN')}</div>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error(e);
+        list.innerHTML = '<div class="empty-tip">⚠️ 加载失败，请刷新页面重试</div>';
+    }
+}
+
+// ============================================================
+// 5. 成绩统计功能
+// ============================================================
+let scoreChart = null;
+
+async function addScore() {
+    const subject = document.getElementById('scoreSubject').value.trim();
+    const score = parseInt(document.getElementById('scoreValue').value);
+    const date = document.getElementById('scoreDate').value;
+    const successEl = document.getElementById('scoreSuccess');
+    const errorEl = document.getElementById('scoreError');
+
+    successEl.classList.remove('show');
+    errorEl.classList.remove('show');
+
+    if (!subject) { alert('请输入科目名称'); return; }
+    if (isNaN(score) || score < 0 || score > 100) { alert('请输入 0-100 的有效分数'); return; }
+    if (!date) { alert('请选择考试日期'); return; }
+
+    try {
+        const { error } = await supabaseClient
+            .from('scores')
+            .insert([{ subject, score, exam_date: date }]);
+
+        if (error) throw error;
+
+        successEl.classList.add('show');
+        document.getElementById('scoreSubject').value = '';
+        document.getElementById('scoreValue').value = '';
+        document.getElementById('scoreDate').value = '';
+        loadScores();
+    } catch (e) {
+        console.error(e);
+        errorEl.classList.add('show');
+    }
+}
+
+async function loadScores() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('scores')
+            .select('*')
+            .order('exam_date', { ascending: true });
+
+        if (error) throw error;
+
+        const emptyEl = document.getElementById('scoreEmpty');
+        if (!data || data.length === 0) {
+            emptyEl.style.display = 'block';
+            if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+            return;
+        }
+        emptyEl.style.display = 'none';
+
+        // 按科目分组
+        const subjects = [...new Set(data.map(d => d.subject))];
+        const dates = [...new Set(data.map(d => d.exam_date))].sort();
+
+        const datasets = subjects.map(sub => {
+            const scores = dates.map(date => {
+                const found = data.find(d => d.subject === sub && d.exam_date === date);
+                return found ? found.score : null;
+            });
+            return {
+                label: sub,
+                data: scores,
+                borderColor: ['#e84393', '#fd79a8', '#6c5ce7', '#00b894', '#fdcb6e'][subjects.indexOf(sub) % 5],
+                backgroundColor: ['#e84393', '#fd79a8', '#6c5ce7', '#00b894', '#fdcb6e'][subjects.indexOf(sub) % 5] + '33',
+                borderWidth: 3,
+                pointRadius: 5,
+                tension: 0.2,
+                spanGaps: true,
+            };
+        });
+
+        const ctx = document.getElementById('scoreChart').getContext('2d');
+        if (scoreChart) { scoreChart.destroy(); }
+
+        scoreChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: datasets,
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 15 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.parsed.y === null) return `${context.dataset.label}: 缺考`;
+                                return `${context.dataset.label}: ${context.parsed.y}分`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: { stepSize: 20 }
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+// ============================================================
+// 6. 退出登录
+// ============================================================
+function logout() {
+    if (confirm('确定要退出吗？')) {
+        window.location.href = 'index.html';
+    }
+}
+
+// ============================================================
+// 7. 页面加载时自动加载数据
+// ============================================================
+window.onload = function() {
+    // 设置今天的日期为默认值
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('scoreDate').value = today;
+
+    loadMessages();
+    loadPhotos();
+    loadScores();
+};
+</script>
+</body>
+</html>
