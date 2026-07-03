@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>💖 只属于你和我</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             margin: 0;
@@ -14,7 +12,6 @@
             justify-content: center;
             align-items: center;
             font-family: "Microsoft YaHei", sans-serif;
-            /* ★ 替换成你俩的合照网络链接（待会教你换） ★ */
             background: url('https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600') no-repeat center center;
             background-size: cover;
             backdrop-filter: blur(3px);
@@ -69,35 +66,22 @@
     <button onclick="checkPassword()">✨ 进入基地 ✨</button>
     <div class="error" id="errorMsg"></div>
 </div>
+
 <script>
-    <script>
-    // 1. 在这里填入你从 Supabase 后台复制的信息
-    const SUPABASE_URL = 'https://ucxtoekdjqlkkfrkpbol.supabase.co';  // 替换成你的 Project URL
-    const SUPABASE_ANON_KEY = 'sb_secret_6dEs0DmbudmZo4rRx-djuQ_1BqFRNTz';          // 替换成你的 anon public 密钥
-
-    // 2. 创建 Supabase 客户端
-    // 使用从 CDN 加载的全局 supabase 对象来获取 createClient 方法
-    const { createClient } = supabase;
-    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // 3. (可选) 测试一下连接是否成功，在浏览器控制台会打印出客户端对象
-    console.log('Supabase 客户端初始化成功！', supabaseClient);
-</script>
     function checkPassword() {
-        // ★★★ 这里改成你们的专属密码（数字或字母都行） ★★★
-        var correctPassword = "0520"; 
-        
+        var correctPassword = "0520";
         var userInput = document.getElementById("passwordInput").value;
         var errorDiv = document.getElementById("errorMsg");
 
         if (userInput === correctPassword) {
-            // ★★★ 这里改成你刚才复制的 Notion 分享链接 ★★★
-            window.location.href = "https://stunning-dieffenbachia-db9ca8.netlify.app/"; 
+            // 登录成功后跳转到主页
+            window.location.href = "main.html";
         } else {
             errorDiv.innerText = "❌ 暗号错误，再想想～";
             document.getElementById("passwordInput").value = "";
         }
     }
+
     document.getElementById("passwordInput").addEventListener("keypress", function(e) {
         if (e.key === "Enter") { checkPassword(); }
     });
