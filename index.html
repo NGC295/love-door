@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💖 只属于你和我</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: "Microsoft YaHei", sans-serif;
+            /* ★ 替换成你俩的合照网络链接（待会教你换） ★ */
+            background: url('https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600') no-repeat center center;
+            background-size: cover;
+            backdrop-filter: blur(3px);
+        }
+        .love-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(10px);
+            padding: 40px 45px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            text-align: center;
+            width: 300px;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        h1 { color: #e84393; margin-bottom: 5px; font-size: 24px; }
+        .sub { color: #666; margin-bottom: 25px; font-size: 13px; letter-spacing: 3px; }
+        input {
+            width: 80%;
+            padding: 12px;
+            border: 2px solid #f8a5c2;
+            border-radius: 50px;
+            outline: none;
+            font-size: 16px;
+            text-align: center;
+        }
+        input:focus { border-color: #e84393; }
+        button {
+            margin-top: 18px;
+            padding: 12px 45px;
+            background: #e84393;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(232,67,147,0.4);
+            transition: 0.3s;
+        }
+        button:hover { background: #d6336c; transform: scale(1.05); }
+        .error { color: red; font-size: 13px; margin-top: 12px; min-height: 20px; }
+        .heart { color: #e84393; font-size: 30px; }
+    </style>
+</head>
+<body>
+<div class="love-card">
+    <div class="heart">❤️</div>
+    <h1>只属于你和我</h1>
+    <div class="sub">— 输入暗号 推开大门 —</div>
+    <input type="password" id="passwordInput" placeholder="请输入密码">
+    <br>
+    <button onclick="checkPassword()">✨ 进入基地 ✨</button>
+    <div class="error" id="errorMsg"></div>
+</div>
+<script>
+    function checkPassword() {
+        // ★★★ 这里改成你们的专属密码（数字或字母都行） ★★★
+        var correctPassword = "0520"; 
+        
+        var userInput = document.getElementById("passwordInput").value;
+        var errorDiv = document.getElementById("errorMsg");
+
+        if (userInput === correctPassword) {
+            // ★★★ 这里改成你刚才复制的 Notion 分享链接 ★★★
+            window.location.href = "https://stunning-dieffenbachia-db9ca8.netlify.app/"; 
+        } else {
+            errorDiv.innerText = "❌ 暗号错误，再想想～";
+            document.getElementById("passwordInput").value = "";
+        }
+    }
+    document.getElementById("passwordInput").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") { checkPassword(); }
+    });
+</script>
+</body>
+</html>
