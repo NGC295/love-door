@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from supabase_py import create_client
+from supabase import create_client, Client
 import plotly.express as px
 from datetime import datetime
 
@@ -10,7 +10,7 @@ from datetime import datetime
 SUPABASE_URL = 'https://ucxtoekdjqlkkfrkpbol.supabase.co'
 SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjeHRvZWtkanFsa2tmcmtwYm9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTEwNDcsImV4cCI6MjA5ODY2NzA0N30.bGAUFN92YZLfmDUbd9t_DsmxymA8KZgr1Z67ezWLBJY'
 
-supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 # ============================================================
 # 2. 页面配置
@@ -40,7 +40,6 @@ with st.sidebar:
                 }
                 supabase.table("scores").insert(data).execute()
                 st.success("✅ 成绩录入成功！刷新页面查看更新")
-                # 注意：这里去掉了 st.rerun()，避免 DOM 冲突
             except Exception as e:
                 st.error(f"❌ 录入失败：{e}")
 
@@ -138,7 +137,6 @@ if delete_options:
         try:
             supabase.table("scores").delete().eq("id", selected_row["id"]).execute()
             st.success("✅ 删除成功！刷新页面查看更新")
-            # 同样去掉了 st.rerun()
         except Exception as e:
             st.error(f"❌ 删除失败：{e}")
 else:
