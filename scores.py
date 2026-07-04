@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
-from supabase import create_client
+from supabase_py import create_client
 import plotly.express as px
 from datetime import datetime
 
 # ============================================================
-# 1. Supabase 配置（和情侣网站共用同一个数据库）
+# 1. Supabase 配置
 # ============================================================
 SUPABASE_URL = 'https://ucxtoekdjqlkkfrkpbol.supabase.co'
 SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjeHRvZWtkanFsa2tmcmtwYm9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTEwNDcsImV4cCI6MjA5ODY2NzA0N30.bGAUFN92YZLfmDUbd9t_DsmxymA8KZgr1Z67ezWLBJY'
