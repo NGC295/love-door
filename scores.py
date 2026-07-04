@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from supabase import create_client, Client
+from supabase_py import create_client, Client
 import plotly.express as px
 from datetime import datetime
 
