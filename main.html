@@ -6,8 +6,6 @@
     <title>💖 我们的秘密基地</title>
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -33,6 +31,14 @@
             box-shadow: 0 8px 30px rgba(232,67,147,0.3);
         }
         .header h1 { font-size: 22px; }
+        .header-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .header-links a:hover { opacity: 1; text-decoration: underline; }
         .header .logout {
             background: rgba(255,255,255,0.2);
             border: none;
@@ -44,7 +50,7 @@
         }
         .header .logout:hover { background: rgba(255,255,255,0.3); }
 
-        /* Tab 切换 */
+        /* Tab 切换（只剩下两个） */
         .tabs {
             display: flex;
             gap: 10px;
@@ -122,7 +128,7 @@
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         /* 留言列表 */
-        .message-list, .photo-list {
+        .message-list {
             margin-top: 20px;
             border-top: 2px dashed #f8a5c2;
             padding-top: 20px;
@@ -133,12 +139,31 @@
             border-radius: 12px;
             margin-bottom: 10px;
             border-left: 4px solid #e84393;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
         .message-item .author { font-weight: bold; color: #e84393; }
         .message-item .time { font-size: 12px; color: #999; margin-left: 10px; }
         .message-item .content { margin-top: 5px; color: #333; }
+        .message-item .delete-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .message-item .delete-btn:hover { background: #e03131; }
 
         /* 图片列表 */
+        .photo-list {
+            margin-top: 20px;
+            border-top: 2px dashed #f8a5c2;
+            padding-top: 20px;
+        }
         .photo-item {
             border: 1px solid #fce4ec;
             border-radius: 12px;
@@ -161,7 +186,7 @@
             font-size: 12px;
             color: #999;
         }
-        .photo-item .delete-btn {
+        .photo-item .delete-photo-btn {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -176,28 +201,8 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             z-index: 10;
         }
-        .photo-item .delete-btn:hover { background: #e03131; }
+        .photo-item .delete-photo-btn:hover { background: #e03131; }
 
-        /* 成绩统计 */
-        .score-form-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .score-form-row .form-group {
-            flex: 1;
-            min-width: 120px;
-        }
-        .chart-container {
-            margin-top: 25px;
-            position: relative;
-            height: 300px;
-        }
-
-        /* 加载状态 */
-        .loading { color: #999; text-align: center; padding: 20px; }
-
-        /* 角色选择（留言人） */
         .role-selector {
             display: flex;
             gap: 15px;
@@ -240,40 +245,13 @@
             text-align: center;
             padding: 30px 0;
         }
+        .loading { color: #999; text-align: center; padding: 20px; }
 
-        /* 成绩列表 */
-        .score-list-container {
-            margin-top: 20px;
-            border-top: 2px dashed #f8a5c2;
-            padding-top: 15px;
-        }
-        .score-list-container h4 { color: #e84393; margin-bottom: 10px; }
-        .score-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 10px;
-            background: #fdf2f8;
-            border-radius: 8px;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-        .score-item .del-score {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 2px 12px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .score-item .del-score:hover { background: #e03131; }
-
-        /* 小屏适配 */
         @media (max-width: 600px) {
             .header h1 { font-size: 18px; }
             .tabs button { font-size: 13px; min-width: 70px; padding: 10px; }
             .tab-content { padding: 15px; }
+            .header-links a { margin-left: 10px; font-size: 12px; }
         }
     </style>
 </head>
@@ -283,14 +261,18 @@
     <!-- 顶部栏 -->
     <div class="header">
         <h1>💖 秘密基地</h1>
-        <button class="logout" onclick="logout()">🚪 退出</button>
+        <div style="display:flex; align-items:center;">
+            <div class="header-links">
+                <a href="https://love-scores.streamlit.app" target="_blank">📊 成绩看板</a>
+            </div>
+            <button class="logout" onclick="logout()" style="margin-left:15px;">🚪 退出</button>
+        </div>
     </div>
 
-    <!-- Tab 切换按钮 -->
+    <!-- Tab 切换按钮（只剩下两个） -->
     <div class="tabs">
         <button class="active" data-tab="tab-message">💬 留言板</button>
         <button data-tab="tab-photo">📷 图片记录</button>
-        <button data-tab="tab-score">📊 成绩统计</button>
     </div>
 
     <!-- ============================== -->
@@ -298,7 +280,6 @@
     <!-- ============================== -->
     <div id="tab-message" class="tab-content active">
         <h3 style="color:#e84393; margin-bottom:15px;">💬 写留言</h3>
-        <!-- 留言人选择 -->
         <div class="role-selector">
             <label><input type="radio" name="msgAuthor" value="林" checked> 💕 林</label>
             <label><input type="radio" name="msgAuthor" value="付"> 💖 付</label>
@@ -332,41 +313,6 @@
 
         <div class="photo-list" id="photoList">
             <div class="loading">加载照片中...</div>
-        </div>
-    </div>
-
-    <!-- ============================== -->
-    <!-- Tab 3：成绩统计 -->
-    <!-- ============================== -->
-    <div id="tab-score" class="tab-content">
-        <h3 style="color:#e84393; margin-bottom:15px;">📊 录入成绩</h3>
-        <div class="score-form-row">
-            <div class="form-group">
-                <label>科目</label>
-                <input type="text" id="scoreSubject" placeholder="如：数学" value="数学">
-            </div>
-            <div class="form-group">
-                <label>分数</label>
-                <input type="number" id="scoreValue" placeholder="如：95" min="0" max="100">
-            </div>
-            <div class="form-group">
-                <label>考试日期</label>
-                <input type="date" id="scoreDate">
-            </div>
-        </div>
-        <button class="btn-primary" onclick="addScore()">📊 录入成绩</button>
-        <div id="scoreSuccess" class="success-msg">✅ 成绩录入成功！</div>
-        <div id="scoreError" class="error-msg">❌ 录入失败，请重试</div>
-
-        <div class="chart-container">
-            <canvas id="scoreChart"></canvas>
-        </div>
-        <div id="scoreEmpty" class="empty-tip">📝 暂无成绩数据，录入第一条吧！</div>
-
-        <!-- 成绩列表（带删除） -->
-        <div class="score-list-container">
-            <h4>📋 已录入成绩</h4>
-            <div id="scoreList" style="max-height:200px; overflow-y:auto;"></div>
         </div>
     </div>
 </div>
@@ -441,15 +387,15 @@ async function loadMessages() {
         }
 
         list.innerHTML = data.map(msg => `
-            <div class="message-item" style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div style="flex:1;">
+            <div class="message-item">
+                <div>
                     <div>
                         <span class="author">${msg.author}</span>
                         <span class="time">${new Date(msg.created_at).toLocaleString('zh-CN')}</span>
                     </div>
                     <div class="content">${msg.content}</div>
                 </div>
-                <button onclick="deleteMessage('${msg.id}')" style="background:#ff6b6b; color:white; border:none; border-radius:8px; padding:4px 12px; cursor:pointer; font-size:12px; flex-shrink:0;">删除</button>
+                <button class="delete-btn" onclick="deleteMessage('${msg.id}')">删除</button>
             </div>
         `).join('');
     } catch (e) {
@@ -544,7 +490,7 @@ async function loadPhotos() {
 
         list.innerHTML = data.map(photo => `
             <div class="photo-item">
-                <button class="delete-btn" onclick="deletePhoto('${photo.id}')">×</button>
+                <button class="delete-photo-btn" onclick="deletePhoto('${photo.id}')">×</button>
                 <img src="${photo.image_url}" alt="${photo.description}" loading="lazy">
                 <div class="photo-desc">
                     ${photo.description}
@@ -574,148 +520,7 @@ async function deletePhoto(id) {
 }
 
 // ============================================================
-// 5. 成绩统计功能
-// ============================================================
-let scoreChart = null;
-
-async function addScore() {
-    const subject = document.getElementById('scoreSubject').value.trim();
-    const score = parseInt(document.getElementById('scoreValue').value);
-    const date = document.getElementById('scoreDate').value;
-    const successEl = document.getElementById('scoreSuccess');
-    const errorEl = document.getElementById('scoreError');
-
-    successEl.classList.remove('show');
-    errorEl.classList.remove('show');
-
-    if (!subject) { alert('请输入科目名称'); return; }
-    if (isNaN(score) || score < 0 || score > 100) { alert('请输入 0-100 的有效分数'); return; }
-    if (!date) { alert('请选择考试日期'); return; }
-
-    try {
-        const { error } = await supabaseClient
-            .from('scores')
-            .insert([{ subject, score, exam_date: date }]);
-
-        if (error) throw error;
-
-        successEl.classList.add('show');
-        document.getElementById('scoreSubject').value = '';
-        document.getElementById('scoreValue').value = '';
-        document.getElementById('scoreDate').value = '';
-        loadScores();
-    } catch (e) {
-        console.error(e);
-        errorEl.classList.add('show');
-    }
-}
-
-async function loadScores() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('scores')
-            .select('*')
-            .order('exam_date', { ascending: true });
-
-        if (error) throw error;
-
-        const emptyEl = document.getElementById('scoreEmpty');
-        if (!data || data.length === 0) {
-            emptyEl.style.display = 'block';
-            if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
-            document.getElementById('scoreList').innerHTML = '<div style="color:#999; text-align:center; padding:10px;">暂无成绩</div>';
-            return;
-        }
-        emptyEl.style.display = 'none';
-
-        // 按科目分组
-        const subjects = [...new Set(data.map(d => d.subject))];
-        const dates = [...new Set(data.map(d => d.exam_date))].sort();
-
-        const datasets = subjects.map(sub => {
-            const scores = dates.map(date => {
-                const found = data.find(d => d.subject === sub && d.exam_date === date);
-                return found ? found.score : null;
-            });
-            const colors = ['#e84393', '#fd79a8', '#6c5ce7', '#00b894', '#fdcb6e'];
-            return {
-                label: sub,
-                data: scores,
-                borderColor: colors[subjects.indexOf(sub) % colors.length],
-                backgroundColor: colors[subjects.indexOf(sub) % colors.length] + '33',
-                borderWidth: 3,
-                pointRadius: 5,
-                tension: 0.2,
-                spanGaps: true,
-            };
-        });
-
-        const ctx = document.getElementById('scoreChart').getContext('2d');
-        if (scoreChart) { scoreChart.destroy(); }
-
-        scoreChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: dates,
-                datasets: datasets,
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: { usePointStyle: true, padding: 15 }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                if (context.parsed.y === null) return `${context.dataset.label}: 缺考`;
-                                return `${context.dataset.label}: ${context.parsed.y}分`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        min: 0,
-                        max: 100,
-                        ticks: { stepSize: 20 }
-                    }
-                }
-            }
-        });
-
-        // 渲染成绩列表（带删除）
-        const scoreListEl = document.getElementById('scoreList');
-        scoreListEl.innerHTML = data.map(s => `
-            <div class="score-item">
-                <span><strong>${s.subject}</strong> ${s.score}分 (${s.exam_date})</span>
-                <button class="del-score" onclick="deleteScore('${s.id}')">删除</button>
-            </div>
-        `).join('');
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-async function deleteScore(id) {
-    if (!confirm('确定要删除这条成绩吗？')) return;
-    try {
-        const { error } = await supabaseClient
-            .from('scores')
-            .delete()
-            .eq('id', id);
-        if (error) throw error;
-        loadScores();
-    } catch (e) {
-        alert('删除失败，请重试');
-        console.error(e);
-    }
-}
-
-// ============================================================
-// 6. 退出登录
+// 5. 退出登录
 // ============================================================
 function logout() {
     if (confirm('确定要退出吗？')) {
@@ -724,14 +529,11 @@ function logout() {
 }
 
 // ============================================================
-// 7. 页面加载时自动加载数据
+// 6. 页面加载时自动加载数据
 // ============================================================
 window.onload = function() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('scoreDate').value = today;
     loadMessages();
     loadPhotos();
-    loadScores();
 };
 </script>
 </body>
