@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
-from supabase_py import create_client, Client
+from supabase import create_client, Client
 import plotly.express as px
 from datetime import datetime
 
 # ============================================================
-# 1. Supabase 配置（和情侣网站共用同一个数据库）
+# 1. Supabase 配置
 # ============================================================
 SUPABASE_URL = 'https://ucxtoekdjqlkkfrkpbol.supabase.co'
 SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjeHRvZWtkanFsa2tmcmtwYm9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwOTEwNDcsImV4cCI6MjA5ODY2NzA0N30.bGAUFN92YZLfmDUbd9t_DsmxymA8KZgr1Z67ezWLBJY'
@@ -20,12 +20,24 @@ st.title("📊 成绩统计看板")
 st.markdown("---")
 
 # ============================================================
-# 3. 侧边栏：录入成绩
+# 3. 数据加载函数
+# ============================================================
+@st.cache_data(ttl=10)
+def load_scores():
+    try:
+        response = supabase.table("scores").select("*").order("exam_date", desc=False).execute()
+        return response.data
+    except Exception as e:
+        st.error(f"读取数据失败：{e}")
+        return []
+
+# ============================================================
+# 4. 侧边栏：录入成绩
 # ============================================================
 with st.sidebar:
     st.header("📝 录入新成绩")
     subject = st.text_input("科目名称", placeholder="如：数学")
-    score = st.number_input("分数", min_value=0, max_value=100, step=1)
+    score = st.number_input("分数", min_value=0, max_value=100, step=1, value=80)
     exam_date = st.date_input("考试日期", value=datetime.today())
     
     if st.button("✅ 录入成绩", use_container_width=True):
@@ -40,20 +52,16 @@ with st.sidebar:
                 }
                 supabase.table("scores").insert(data).execute()
                 st.success("✅ 成绩录入成功！")
+                # 清除缓存，强制重新加载数据
+                st.cache_data.clear()
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ 录入失败：{e}")
 
 # ============================================================
-# 4. 主区域：数据展示
+# 5. 主区域：数据展示
 # ============================================================
-# 读取数据
-try:
-    response = supabase.table("scores").select("*").order("exam_date", desc=False).execute()
-    data = response.data
-except Exception as e:
-    st.error(f"读取数据失败：{e}")
-    data = []
+data = load_scores()
 
 if not data:
     st.info("📝 还没有成绩数据，请在左侧录入第一条！")
@@ -64,7 +72,7 @@ df = pd.DataFrame(data)
 df["exam_date"] = pd.to_datetime(df["exam_date"])
 
 # ============================================================
-# 5. 统计概览卡片
+# 6. 统计概览卡片
 # ============================================================
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -79,7 +87,7 @@ with col4:
 st.markdown("---")
 
 # ============================================================
-# 6. 折线统计图（交互式）
+# 7. 折线统计图（交互式）
 # ============================================================
 st.subheader("📈 成绩趋势图")
 
@@ -105,7 +113,7 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 # ============================================================
-# 7. 成绩明细表格 + 删除功能
+# 8. 成绩明细表格 + 删除功能
 # ============================================================
 st.markdown("---")
 st.subheader("📋 成绩明细")
@@ -132,23 +140,26 @@ st.dataframe(
 )
 
 # ============================================================
-# 8. 删除功能
+# 9. 删除功能（独立表单，避免和主表单冲突）
 # ============================================================
 st.markdown("---")
 st.subheader("🗑️ 删除成绩")
 
-# 选择要删除的成绩
-delete_options = [f"{row['subject']} - {row['score']}分 ({row['exam_date']})" for row in filtered_df.to_dict('records')]
-if delete_options:
-    selected_delete = st.selectbox("选择要删除的成绩", delete_options)
-    if st.button("🗑️ 删除选中的成绩", type="secondary", use_container_width=True):
-        # 找到对应的 ID
-        selected_row = filtered_df.iloc[delete_options.index(selected_delete)]
-        try:
-            supabase.table("scores").delete().eq("id", selected_row["id"]).execute()
-            st.success("✅ 删除成功！")
-            st.rerun()
-        except Exception as e:
-            st.error(f"❌ 删除失败：{e}")
-else:
-    st.info("暂无成绩可删除")
+# 用 with 包裹，避免和主表单冲突
+with st.form(key="delete_form"):
+    delete_options = [f"{row['subject']} - {row['score']}分 ({row['exam_date']})" for row in filtered_df.to_dict('records')]
+    if delete_options:
+        selected_delete = st.selectbox("选择要删除的成绩", delete_options)
+        submitted = st.form_submit_button("🗑️ 删除选中的成绩", use_container_width=True)
+        if submitted:
+            # 找到对应的 ID
+            selected_row = filtered_df.iloc[delete_options.index(selected_delete)]
+            try:
+                supabase.table("scores").delete().eq("id", selected_row["id"]).execute()
+                st.success("✅ 删除成功！")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ 删除失败：{e}")
+    else:
+        st.info("暂无成绩可删除")
