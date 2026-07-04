@@ -31,14 +31,6 @@
             box-shadow: 0 8px 30px rgba(232,67,147,0.3);
         }
         .header h1 { font-size: 22px; }
-        .header-links a {
-            color: white;
-            text-decoration: none;
-            margin-left: 20px;
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        .header-links a:hover { opacity: 1; text-decoration: underline; }
         .header .logout {
             background: rgba(255,255,255,0.2);
             border: none;
@@ -50,7 +42,7 @@
         }
         .header .logout:hover { background: rgba(255,255,255,0.3); }
 
-        /* Tab 切换（只剩下两个） */
+        /* Tab 切换 */
         .tabs {
             display: flex;
             gap: 10px;
@@ -98,7 +90,7 @@
             margin-bottom: 5px;
             font-size: 14px;
         }
-        .form-group input, .form-group textarea, .form-group select {
+        .form-group input, .form-group textarea {
             width: 100%;
             padding: 10px 15px;
             border: 2px solid #f8a5c2;
@@ -108,7 +100,7 @@
             transition: 0.3s;
             font-family: inherit;
         }
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+        .form-group input:focus, .form-group textarea:focus {
             border-color: #e84393;
         }
         .form-group textarea { resize: vertical; min-height: 80px; }
@@ -128,7 +120,7 @@
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         /* 留言列表 */
-        .message-list {
+        .message-list, .photo-list {
             margin-top: 20px;
             border-top: 2px dashed #f8a5c2;
             padding-top: 20px;
@@ -139,31 +131,12 @@
             border-radius: 12px;
             margin-bottom: 10px;
             border-left: 4px solid #e84393;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
         }
         .message-item .author { font-weight: bold; color: #e84393; }
         .message-item .time { font-size: 12px; color: #999; margin-left: 10px; }
         .message-item .content { margin-top: 5px; color: #333; }
-        .message-item .delete-btn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 4px 12px;
-            cursor: pointer;
-            font-size: 12px;
-            flex-shrink: 0;
-        }
-        .message-item .delete-btn:hover { background: #e03131; }
 
         /* 图片列表 */
-        .photo-list {
-            margin-top: 20px;
-            border-top: 2px dashed #f8a5c2;
-            padding-top: 20px;
-        }
         .photo-item {
             border: 1px solid #fce4ec;
             border-radius: 12px;
@@ -186,7 +159,7 @@
             font-size: 12px;
             color: #999;
         }
-        .photo-item .delete-photo-btn {
+        .photo-item .delete-btn {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -201,8 +174,12 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             z-index: 10;
         }
-        .photo-item .delete-photo-btn:hover { background: #e03131; }
+        .photo-item .delete-btn:hover { background: #e03131; }
 
+        /* 加载状态 */
+        .loading { color: #999; text-align: center; padding: 20px; }
+
+        /* 角色选择（留言人） */
         .role-selector {
             display: flex;
             gap: 15px;
@@ -245,13 +222,12 @@
             text-align: center;
             padding: 30px 0;
         }
-        .loading { color: #999; text-align: center; padding: 20px; }
 
+        /* 小屏适配 */
         @media (max-width: 600px) {
             .header h1 { font-size: 18px; }
             .tabs button { font-size: 13px; min-width: 70px; padding: 10px; }
             .tab-content { padding: 15px; }
-            .header-links a { margin-left: 10px; font-size: 12px; }
         }
     </style>
 </head>
@@ -261,15 +237,10 @@
     <!-- 顶部栏 -->
     <div class="header">
         <h1>💖 秘密基地</h1>
-        <div style="display:flex; align-items:center;">
-            <div class="header-links">
-                <a href="https://love-scores.streamlit.app" target="_blank">📊 成绩看板</a>
-            </div>
-            <button class="logout" onclick="logout()" style="margin-left:15px;">🚪 退出</button>
-        </div>
+        <button class="logout" onclick="logout()">🚪 退出</button>
     </div>
 
-    <!-- Tab 切换按钮（只剩下两个） -->
+    <!-- Tab 切换按钮（只有留言板和图片记录） -->
     <div class="tabs">
         <button class="active" data-tab="tab-message">💬 留言板</button>
         <button data-tab="tab-photo">📷 图片记录</button>
@@ -280,6 +251,7 @@
     <!-- ============================== -->
     <div id="tab-message" class="tab-content active">
         <h3 style="color:#e84393; margin-bottom:15px;">💬 写留言</h3>
+        <!-- 留言人选择 -->
         <div class="role-selector">
             <label><input type="radio" name="msgAuthor" value="林" checked> 💕 林</label>
             <label><input type="radio" name="msgAuthor" value="付"> 💖 付</label>
@@ -387,15 +359,15 @@ async function loadMessages() {
         }
 
         list.innerHTML = data.map(msg => `
-            <div class="message-item">
-                <div>
+            <div class="message-item" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="flex:1;">
                     <div>
                         <span class="author">${msg.author}</span>
                         <span class="time">${new Date(msg.created_at).toLocaleString('zh-CN')}</span>
                     </div>
                     <div class="content">${msg.content}</div>
                 </div>
-                <button class="delete-btn" onclick="deleteMessage('${msg.id}')">删除</button>
+                <button onclick="deleteMessage('${msg.id}')" style="background:#ff6b6b; color:white; border:none; border-radius:8px; padding:4px 12px; cursor:pointer; font-size:12px; flex-shrink:0;">删除</button>
             </div>
         `).join('');
     } catch (e) {
@@ -490,7 +462,7 @@ async function loadPhotos() {
 
         list.innerHTML = data.map(photo => `
             <div class="photo-item">
-                <button class="delete-photo-btn" onclick="deletePhoto('${photo.id}')">×</button>
+                <button class="delete-btn" onclick="deletePhoto('${photo.id}')">×</button>
                 <img src="${photo.image_url}" alt="${photo.description}" loading="lazy">
                 <div class="photo-desc">
                     ${photo.description}
