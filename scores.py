@@ -39,8 +39,8 @@ with st.sidebar:
                     "exam_date": exam_date.strftime("%Y-%m-%d")
                 }
                 supabase.table("scores").insert(data).execute()
-                st.success("✅ 成绩录入成功！")
-                st.rerun()
+                st.success("✅ 成绩录入成功！刷新页面查看更新")
+                # 注意：这里去掉了 st.rerun()，避免 DOM 冲突
             except Exception as e:
                 st.error(f"❌ 录入失败：{e}")
 
@@ -137,8 +137,8 @@ if delete_options:
         selected_row = filtered_df.iloc[delete_options.index(selected_delete)]
         try:
             supabase.table("scores").delete().eq("id", selected_row["id"]).execute()
-            st.success("✅ 删除成功！")
-            st.rerun()
+            st.success("✅ 删除成功！刷新页面查看更新")
+            # 同样去掉了 st.rerun()
         except Exception as e:
             st.error(f"❌ 删除失败：{e}")
 else:
